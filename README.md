@@ -1,2 +1,117 @@
-# EV ChargeSync
-EV charging portals and virtual station simulator.
+# EV ChargeSync — Hackathon Simulation
+
+A local Java + Spring Boot demo with linked driver and station portals, a grid charging simulator, and OpenDSS feeder results. It uses synthetic data and does not require a database, cloud account, or physical EV.
+
+## Requirements
+
+- Windows 11
+- JDK 17 or newer (not just a JRE)
+- Apache Maven 3.8 or newer, or Maven Daemon 1.0.6
+- Internet access the first time you build, so Maven can download project dependencies
+
+Install a JDK from [Eclipse Temurin](https://adoptium.net/temurin/releases/). For Maven, download the binary ZIP from [Apache Maven](https://maven.apache.org/download.cgi), extract it to a permanent folder such as `C:\Tools\apache-maven`, and add its `bin` subfolder to your Windows `Path`. The supplied `maven-mvnd-1.0.6-windows-amd64.zip` also works: extract the folder somewhere permanent, such as `C:\Tools\maven-mvnd-1.0.6-windows-amd64`, and add its `bin` subfolder to `Path`. Reopen PowerShell after installation.
+
+Verify both are available in PowerShell:
+
+```powershell
+java -version
+mvn -version
+```
+
+## Launch
+
+1. Extract this ZIP to a folder, for example `C:\hackathon\ev-chargesync`.
+2. Open that folder in File Explorer.
+3. Double-click `run-windows.bat`, or open PowerShell in the folder and run:
+
+   ```powershell
+   .\run-windows.bat
+   ```
+
+   To start directly from PowerShell instead, run `mvnd spring-boot:run` (or `mvn spring-boot:run` with standard Maven).
+4. Wait for Spring Boot to finish starting, then open [http://localhost:8082/login.html](http://localhost:8082/login.html).
+5. Keep the terminal window open while demonstrating. Press `Ctrl+C` there to stop the application.
+
+## Sign in and linked driver and station portals
+
+The app opens the sign-in page at `http://localhost:8082/login.html`. Choose a **Driver** or **Station operator** account. Separate demo accounts are included:
+
+| Account | Email | Password |
+|---|---|---|
+| Driver | `driver@chargesync.demo` | `Driver123!` |
+| Station operator | `station@chargesync.demo` | `Station123!` |
+
+New users can register with email and password. Station registration creates a private virtual station with its own tariff, output limit, and two docks. A station operator can edit only the station linked to that account; a driver sees and books across the network. Accounts, stations, bookings, and simulation state are kept in memory for this demo and reset when the app stops.
+
+The **Driver portal** is at `http://localhost:8082/`; the **Station portal** is at `http://localhost:8082/station.html`. Both screens use the same running service, so dock availability, station prices, bookings, and power allocations update across the two portals. A role-aware session keeps each portal's actions separate.
+
+In the station portal, select a station or click **Add a station**. Enter its name, area, coordinates, maximum output and tariff. Add docks with their connector type and output limit, then save. Set an unbooked dock to available, occupied, or maintenance; active bookings lock the dock until the operator completes or cancels the session. **Advance demo by 5 min** simulates charging, updates battery and cost, and releases completed docks.
+
+In the driver portal, enter the current station or coordinates, destination, connector, departure time, battery and trip range. Choose **Eco**, **Normal**, or **Hyper**: the demo caps requested charging power at 40%, 70%, or 100% of the vehicle's limit. Normal is the midpoint of Eco and Hyper. The system estimates a trip target with a 15% reserve. It reserves an open compatible dock at the selected station, or routes to the nearest station with an open compatible dock. Emergency requests rank first; other requests receive power based on battery need and departure urgency, capped by station, dock, mode, and vehicle power. Each station publishes its own price. The page shows the assigned dock, allocation, estimated charge time, cost and straight-line redirection distance.
+
+This version uses virtual charging stations: dock state and charging sessions are simulated in the portal. Seeded stations and their coordinates are synthetic examples. A redirected distance is straight-line distance, not turn-by-turn route guidance. This is a local hackathon demo, not a production authentication service. Google, Microsoft, and Apple sign-in require OAuth application credentials and provider setup; the included sign-in supports separate email/password accounts. Do not reuse real account passwords in this demo.
+
+The former simulation dashboard remains at `http://localhost:8082/simulation.html`; the OpenDSS results page remains linked from the navigation.
+
+The first launch may take a few minutes while Maven downloads dependencies. This project uses port 8082 because the earlier portal may still be using port 8081.
+
+## Open the standalone simulator without installing anything
+
+For a quick visual demo that does not need Java or Maven, open `src/main/resources/static/simulation.html` in a browser. It runs the grid scenarios with an in-page simulator and shows **LOCAL DEMO MODE**. The linked driver and station portals require the Java/Spring Boot service and should be opened at the local URLs above.
+
+## Run the OpenDSS feeder simulation
+
+The `dss` folder contains a three-phase feeder, a 63 kVA service transformer, a phase-distributed EV station, and five-minute EV power profiles. It uses the same urgency-weighted allocation rule as the dashboard, then sends the resulting profiles through OpenDSS in daily mode. This adds feeder voltage and transformer-flow calculations to the hackathon demo. The feeder and its load curve are synthetic and are not a utility study model.
+
+To open the feeder model in the installed OpenDSS desktop app, double-click `dss\open-opendss.bat`. It starts `Master.dss`, solves the daily profile, exports monitor and energy-meter CSV files, and leaves the OpenDSS window open so you can inspect the circuit. The launcher checks `F:\OpenDSS\x64\OpenDSS.exe`, `C:\OpenDSS\x64\OpenDSS.exe`, and the standard Program Files location. If OpenDSS is installed elsewhere, open the batch file in Notepad and replace the listed paths with your `OpenDSS.exe` location.
+
+Open `dss\results.html` to view the included run’s actual OpenDSS voltage, current, and transformer time-series. It works offline and is also linked from the browser dashboard. After exporting a newer run into `dss\output`, refresh the report with `py -3 dss\build_results_report.py`.
+
+If Windows asks which app should open a `.dss` file, the `.dss` file association is not set. Open OpenDSS first, then enter `Compile "<full path to the project>\dss\Master.dss"` in its Main Script window and run it with **Ctrl+D**. A successful run should show **Circuit Status: SOLVED** and should not show a missing `BaseShape` warning. OpenDSS executes the command from its main script window; see the [EPRI GUI instructions](https://opendss.epri.com/OpenDSSGUI.html).
+
+For a headless run, install Python 3.10 or newer, then open PowerShell in the project folder and run:
+
+```powershell
+py -3 dss\run_opendss.py --scenario crowded --station-limit 15
+```
+
+Other options are `--scenario normal` or `--scenario urgent`, and a station limit from 1 to 100 kW. The script prefers OpenDSS's command-line runner (`OpenDSScmd.exe`) and checks the desktop `OpenDSS.exe` as a fallback. If it is installed elsewhere, pass the engine path:
+
+```powershell
+py -3 dss\run_opendss.py --engine "C:\OpenDSS\x64\OpenDSScmd.exe" --scenario urgent --station-limit 5
+```
+
+OpenDSS exports monitor and energy-meter CSV files to `dss\output` when that folder is writable. Some Windows installations fall back to `%LOCALAPPDATA%\OpenDSS` if the selected data path cannot be written; copy the `ChargeSync_*.CSV` reports from there into `dss\output` to keep them with the project. The headless launcher uses `dss\RunHeadless.dss`, which closes the engine after solving; the GUI launcher runs `dss\Master.dss` without closing the window. Both use the included profile files in `dss\profiles`.
+
+If OpenDSS prints `EInOutError: File access denied` before it processes a DSS file (even for `OpenDSScmd.exe -h`), repair or reinstall OpenDSS and retry. That startup failure is separate from the ChargeSync feeder files.
+
+## Five-minute demonstration
+
+1. Choose **Grid constraint · 6 EVs** and set the grid capacity to **15 kW**.
+2. Click **Reset**, then **+ 5 minutes** a few times or click **Start**.
+3. Point out how the scheduler shares a constrained power budget, with a larger share going to vehicles with more urgent deadlines.
+4. Lower capacity to **5 kW** and continue. Compare station allocation, SOC, delivered energy, costs, and missed targets.
+5. Select **Urgent departures**, reset, and observe which targets cannot be met before departure.
+6. Adjust the tariff and explain that the selected price applies to subsequently delivered energy.
+
+## API
+
+- `GET /api/state`
+- `POST /api/start`
+- `POST /api/pause`
+- `POST /api/tick`
+- `POST /api/reset` with JSON such as `{"scenario":"crowded","limit":15,"cheapTariff":false}`
+- `POST /api/limit` with `{"limit":5}`
+- `POST /api/tariff` with `{"tariff":12}`
+- `GET /api/portal/stations`, `POST /api/portal/stations`, and `PUT /api/portal/stations/{stationId}`
+- `PUT /api/portal/stations/{stationId}/docks/{dockId}/status`
+- `GET /api/portal/bookings`, `POST /api/portal/bookings`, `POST /api/portal/bookings/{bookingId}/cancel`, and `POST /api/portal/bookings/{bookingId}/complete`
+- `POST /api/portal/advance` to advance the portal demo by five minutes
+
+## Model assumptions
+
+- Each simulation tick represents five minutes.
+- Charging efficiency is assumed to be 100%.
+- The explainable weighted urgency scheduler shares constrained power and respects each vehicle's charger rating. It is a heuristic, not a globally optimal solver.
+- The tariff is fixed per kWh at the time energy is delivered. Changing the slider affects future charging only.
+- The data is synthetic. This prototype is not a certified EVSE controller; do not connect it to real charging hardware.
