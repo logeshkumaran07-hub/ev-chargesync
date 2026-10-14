@@ -5,7 +5,7 @@ public class VehicleRequest {
     public String destination;
     public String connector;
     public String chargeMode;
-    public boolean emergency;
+
     public Double batteryCapacityKwh;
     public Double soc;
     public Double targetSoc;

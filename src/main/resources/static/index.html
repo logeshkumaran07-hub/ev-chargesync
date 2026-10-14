@@ -32,9 +32,9 @@
             <div class="field"><label for="vehicleMaxKw">Vehicle max charge (kW)</label><input id="vehicleMaxKw" type="number" min="1" max="500" value="100" required></div>
             <div class="field"><label for="estimatedTripKm">Trip distance (km)</label><input id="estimatedTripKm" type="number" min="0" max="5000" value="180" required></div>
             <div class="field"><label for="rangeAt100Km">Vehicle range at 100% (km)</label><input id="rangeAt100Km" type="number" min="1" max="2000" value="350" required></div>
-            <label class="checkrow field full"><input id="emergency" type="checkbox"> Emergency: request highest charging priority</label>
+
           </div>
-          <div class="submit-row"><span class="hint">Eco is capped at 40% of available vehicle power, Normal at 70% (the midpoint), and Hyper at 100%. Emergency requests still receive priority.</span><button class="btn" id="bookButton" type="submit">Find a dock and book&nbsp; →</button></div>
+          <div class="submit-row"><span class="hint">Eco is capped at 40% of available vehicle power, Normal at 70% (the midpoint), and Hyper at 100%.</span><button class="btn" id="bookButton" type="submit">Find a dock and book&nbsp; →</button></div>
         </form>
         <div id="bookingResult" class="result"></div>
         <div class="notice">Charging priority is a demo scheduling estimate. Route distance to a redirected station is straight-line distance; it is not turn-by-turn navigation. Demo station coordinates are synthetic.</div>

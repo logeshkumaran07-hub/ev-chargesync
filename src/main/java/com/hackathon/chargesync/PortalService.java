@@ -126,7 +126,7 @@ public class PortalService {
         booking.assignedStationId = selected.id;
         booking.assignedStationName = selected.name;
         booking.assignedDockId = selectedDock.id;
-        booking.emergency = request.emergency;
+
         booking.tripDistanceKm = request.estimatedTripKm;
         booking.rangeAt100Km = request.rangeAt100Km;
         booking.batteryPercent = request.batteryPercent;
@@ -392,8 +392,8 @@ public class PortalService {
         double energy = remainingKwh(b);
         double hours = Math.max(5.0 / 60.0, b.departureMinutes / 60.0);
         double urgency = energy / hours / Math.max(1, b.vehicleMaxKw);
-        b.priorityScore = b.emergency ? 1000 + urgency : (1 + Math.min(25, urgency)) * (b.batteryPercent < 20 ? 1.5 : 1);
-        b.priority = b.emergency ? "EMERGENCY" : urgency >= 1.5 || b.batteryPercent < 15 ? "HIGH" : "STANDARD";
+        b.priorityScore = (1 + Math.min(25, urgency)) * (b.batteryPercent < 20 ? 1.5 : 1);
+        b.priority = urgency >= 1.5 || b.batteryPercent < 15 ? "HIGH" : "STANDARD";
     }
 
     private String normalizeChargeMode(String mode) {
@@ -554,7 +554,7 @@ public class PortalService {
         public String priority;
         public String routeMessage;
         public String createdAt;
-        public boolean emergency;
+
         public boolean redirected;
         public boolean canMakeTrip;
         public double tripDistanceKm;
@@ -594,7 +594,7 @@ public class PortalService {
         public double vehicleMaxKw;
         public double estimatedTripKm;
         public double rangeAt100Km;
-        public boolean emergency;
+
         public DriverRequest() { }
     }
 

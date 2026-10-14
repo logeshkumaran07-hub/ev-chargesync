@@ -10,8 +10,8 @@
   const number = (n, digits = 1) => Number(n || 0).toLocaleString(undefined, {maximumFractionDigits:digits});
   const active = b => ['CHARGING','WAITING_FOR_POWER'].includes(b.status);
   const pill = (b) => {
-    const value = (b.priority === 'EMERGENCY') ? 'EMERGENCY' : (b.status || 'BOOKED').replaceAll('_',' ');
-    const cls = b.priority === 'EMERGENCY' ? 'red' : (b.priority === 'HIGH' ? 'warn' : '');
+    const value = (b.status || 'BOOKED').replaceAll('_',' ');
+    const cls = b.priority === 'HIGH' ? 'warn' : '';
     return `<span class="pill ${cls}">${esc(value)}</span>`;
   };
   const toast = (message) => {
@@ -78,7 +78,7 @@
       departureMinutes:Number($('departureMinutes').value), batteryPercent:Number($('batteryPercent').value),
       batteryCapacityKwh:Number($('batteryCapacityKwh').value), targetSoc:Number($('targetSoc').value),
       vehicleMaxKw:Number($('vehicleMaxKw').value), estimatedTripKm:Number($('estimatedTripKm').value),
-      rangeAt100Km:Number($('rangeAt100Km').value), emergency:$('emergency').checked
+      rangeAt100Km:Number($('rangeAt100Km').value)
     };
     try {
       const b = await api('/api/portal/bookings', {method:'POST',body:JSON.stringify(body)});

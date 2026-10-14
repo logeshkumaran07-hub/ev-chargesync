@@ -5,7 +5,7 @@ public class Vehicle {
     public String destination = "City center";
     public String connector = "CCS2";
     public String chargeMode = "NORMAL";
-    public boolean emergency;
+
     public double batteryCapacityKwh;
     public double soc;
     public double targetSoc;

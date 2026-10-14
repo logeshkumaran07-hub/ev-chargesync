@@ -96,7 +96,7 @@ public class SimulationService {
         vehicle.destination = destination;
         vehicle.connector = connector;
         vehicle.chargeMode = mode;
-        vehicle.emergency = request.emergency;
+
         vehicle.batteryCapacityKwh = capacity;
         vehicle.soc = soc;
         vehicle.targetSoc = target;
@@ -148,7 +148,7 @@ public class SimulationService {
             double hoursLeft = Math.max(1.0 / 60.0, (v.departureMinute - state.simulationMinute) / 60.0);
             double modeFactor = chargeModeFactor(v.chargeMode);
             demand.put(v, Math.min(v.maxKw * modeFactor, v.energyNeededKwh() / hoursLeft));
-            weights.put(v, Math.max(0.1, urgency(v)) * modeFactor * (v.emergency ? 4.0 : 1.0));
+            weights.put(v, Math.max(0.1, urgency(v)) * modeFactor);
         }
 
         // Weighted progressive filling shares a constrained station while giving
