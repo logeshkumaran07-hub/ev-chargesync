@@ -49,7 +49,29 @@ In the station portal, select a station or click **Add a station**. Enter its na
 
 In the driver portal, enter the current station or coordinates, destination, connector, departure time, battery and trip range. Choose **Eco**, **Normal**, or **Hyper**: the demo caps requested charging power at 40%, 70%, or 100% of the vehicle's limit. Normal is the midpoint of Eco and Hyper. The system estimates a trip target with a 15% reserve. It reserves an open compatible dock at the selected station, or routes to the nearest station with an open compatible dock. Emergency requests rank first; other requests receive power based on battery need and departure urgency, capped by station, dock, mode, and vehicle power. Each station publishes its own price. The page shows the assigned dock, allocation, estimated charge time, cost and straight-line redirection distance.
 
-This version uses virtual charging stations: dock state and charging sessions are simulated in the portal. Seeded stations and their coordinates are synthetic examples. A redirected distance is straight-line distance, not turn-by-turn route guidance. This is a local hackathon demo, not a production authentication service. Google, Microsoft, and Apple sign-in require OAuth application credentials and provider setup; the included sign-in supports separate email/password accounts. Do not reuse real account passwords in this demo.
+This version uses virtual charging stations: dock state and charging sessions are simulated in the portal. Seeded stations and their coordinates are synthetic examples. A redirected distance is straight-line distance, not turn-by-turn route guidance. This is a local hackathon demo, not a production authentication service. Do not reuse real account passwords in this demo.
+
+### Optional Google, Microsoft, and Apple sign-in
+
+The sign-in page shows a provider button only after that provider is configured. Keep all client secrets out of source control and set them as environment variables before starting the app. The provider callback URL must exactly match the URL registered with that provider.
+
+For Google, create a Web application OAuth client and set `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET`. Register `http://localhost:8082/login/oauth2/code/google` as an authorized redirect URI for local development.
+
+For Microsoft Entra ID, create a Web application registration and set `MICROSOFT_CLIENT_ID`, `MICROSOFT_CLIENT_SECRET`, and `MICROSOFT_TENANT_ID` to the app's tenant GUID. This build uses a tenant-specific OIDC issuer. Register `http://localhost:8082/login/oauth2/code/microsoft` as its redirect URI.
+
+Apple sign-in is enabled only for an HTTPS deployment. Set `APPLE_CLIENT_ID` to the Apple Services ID, `APPLE_CLIENT_SECRET` to a current client-secret JWT generated with the Apple signing key, and `CHARGESYNC_PUBLIC_BASE_URL` to the public HTTPS origin. Start the app with the `apple` Spring profile (`$env:SPRING_PROFILES_ACTIVE = "apple"` in PowerShell), and register `<your HTTPS origin>/login/oauth2/code/apple` as the Apple return URL. Apple requires an HTTPS redirect URI and uses a cross-site form POST, so Apple sign-in does not work on the default `http://localhost:8082` address.
+
+On Windows PowerShell, configure secrets for the current terminal session before launching, for example:
+
+```powershell
+$env:GOOGLE_CLIENT_ID = "YOUR_GOOGLE_CLIENT_ID"
+$env:GOOGLE_CLIENT_SECRET = "YOUR_GOOGLE_CLIENT_SECRET"
+$env:MICROSOFT_CLIENT_ID = "YOUR_MICROSOFT_CLIENT_ID"
+$env:MICROSOFT_CLIENT_SECRET = "YOUR_MICROSOFT_CLIENT_SECRET"
+$env:MICROSOFT_TENANT_ID = "YOUR_TENANT_GUID"
+```
+
+Then run `.\run-windows.bat` from the project folder. Provider identities are matched by the stable subject ID and associated with a role-aware ChargeSync account. If a provider returns a verified matching email, it can link to that existing role-matched account. Account/station data is in memory and resets when the app stops; use a persistent identity store and production security review before deployment.
 
 The former simulation dashboard remains at `http://localhost:8082/simulation.html`; the OpenDSS results page remains linked from the navigation.
 
