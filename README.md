@@ -32,6 +32,34 @@ mvn -version
 4. Wait for Spring Boot to finish starting, then open [http://localhost:8082/login.html](http://localhost:8082/login.html).
 5. Keep the terminal window open while demonstrating. Press `Ctrl+C` there to stop the application.
 
+## Deploy the portal to Render
+
+The repository includes a `Dockerfile` and `render.yaml` for a Render web service. In Render, choose **New → Blueprint**,
+connect the private `logeshkumaran07-hub/ev-chargesync` repository, and deploy the `render.yaml` blueprint. The app
+uses Render's `PORT` and `RENDER_EXTERNAL_URL` values automatically. The blueprint enables the `apple` Spring profile
+so secure cross-site cookies are ready for Apple's form-post callback; Apple still appears only after valid credentials
+are configured.
+
+After the first deploy, copy the service's exact HTTPS URL and add OAuth credentials under **Environment** in the
+Render service dashboard. Set `CHARGESYNC_PUBLIC_BASE_URL` to that exact origin, without a trailing slash. Add these
+variables only in Render's dashboard; never put their values in this repository:
+
+| Provider | Environment variables | Registered callback URL |
+|---|---|---|
+| Google | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | `<service URL>/login/oauth2/code/google` |
+| Microsoft Entra ID | `MICROSOFT_CLIENT_ID`, `MICROSOFT_CLIENT_SECRET`, `MICROSOFT_TENANT_ID` | `<service URL>/login/oauth2/code/microsoft` |
+| Apple | `APPLE_CLIENT_ID`, `APPLE_CLIENT_SECRET` | `<service URL>/login/oauth2/code/apple` |
+
+Use a Google **Web application** OAuth client, a Microsoft Entra app registration that supports OIDC sign-in, and an
+Apple Services ID with **Sign in with Apple** enabled. Apple requires an HTTPS return URL and a current client-secret
+JWT signed with its developer key. After saving environment variables, redeploy the service; the provider buttons
+appear when the app detects configured credentials. The service URL can be copied from Render after it is created.
+
+This is a public demo deployment, not production hosting. Render's free web services sleep after 15 minutes without
+traffic and can take about a minute to wake. The app stores accounts, stations, bookings, and simulation state in
+memory, so a restart, sleep, or redeploy resets that data. Do not use real passwords or sensitive customer information.
+Move the app to persistent storage and review its authentication and data handling before using it with real users.
+
 ## Sign in and linked driver and station portals
 
 The app opens the sign-in page at `http://localhost:8082/login.html`. Choose a **Driver** or **Station operator** account. Separate demo accounts are included:

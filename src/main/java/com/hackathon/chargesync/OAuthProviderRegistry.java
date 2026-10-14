@@ -16,7 +16,9 @@ public class OAuthProviderRegistry implements ClientRegistrationRepository {
     private final String publicBaseUrl;
 
     public OAuthProviderRegistry(Environment environment) {
-        this.publicBaseUrl = trimTrailingSlash(environment.getProperty("CHARGESYNC_PUBLIC_BASE_URL", "http://localhost:8082"));
+        String publicUrl = environment.getProperty("CHARGESYNC_PUBLIC_BASE_URL");
+        if (blank(publicUrl)) publicUrl = environment.getProperty("RENDER_EXTERNAL_URL", "http://localhost:8082");
+        this.publicBaseUrl = trimTrailingSlash(publicUrl);
         Map<String, ClientRegistration> configured = new LinkedHashMap<>();
         addGoogle(configured, environment);
         addMicrosoft(configured, environment);
