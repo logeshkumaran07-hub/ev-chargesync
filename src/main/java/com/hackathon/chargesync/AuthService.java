@@ -19,6 +19,8 @@ public class AuthService {
     private static final int HASH_BITS = 256;
     private final SecureRandom random = new SecureRandom();
     private final Map<String, Account> accounts = new LinkedHashMap<>();
+    private final Map<String, Account> accountsById = new HashMap<>();
+    private final Map<String, String> socialIdentityAccounts = new HashMap<>();
     private final PortalService portal;
 
     public AuthService(PortalService portal) {
@@ -52,7 +54,57 @@ public class AuthService {
         account.stationId = stationId;
         account.passwordHash = hashPassword(password);
         accounts.put(email, account);
+        accountsById.put(account.id, account);
         return account;
+    }
+
+    public synchronized Account authenticateSocial(String provider, String subject, String emailInput,
+            boolean emailVerified, String role, PortalService.StationRequest stationRequest, boolean registering) {
+        String normalizedRole = role == null ? "" : role.trim().toUpperCase(Locale.ROOT);
+        if (!Set.of("DRIVER", "STATION").contains(normalizedRole)) throw badRequest("Choose a driver or station account.");
+        if (provider == null || subject == null || subject.isBlank() || subject.length() > 255) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "The identity provider did not return a valid account identifier.");
+        }
+        String email = normalizeEmail(emailInput);
+        String identityKey = provider.toLowerCase(Locale.ROOT) + ":" + subject;
+        String linkedAccountId = socialIdentityAccounts.get(identityKey);
+        if (linkedAccountId != null) {
+            Account linked = accountsById.get(linkedAccountId);
+            if (linked == null) throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "This sign-in is no longer linked to a ChargeSync account.");
+            if (!linked.role.equals(normalizedRole)) throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Choose the account type linked to this sign-in.");
+            return linked;
+        }
+
+        Account sameEmail = accounts.get(email);
+        if (sameEmail != null) {
+            if (!sameEmail.role.equals(normalizedRole)) throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Choose the account type linked to this email.");
+            if (!emailVerified) throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "This provider did not confirm the email address, so it cannot be linked to the existing account.");
+            socialIdentityAccounts.put(identityKey, sameEmail.id);
+            return sameEmail;
+        }
+        if (!registering) throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "No account is linked to this sign-in yet. Choose Create an account to continue.");
+
+        String stationId = null;
+        if ("STATION".equals(normalizedRole)) {
+            if (stationRequest == null) throw badRequest("Station details are required for a station account.");
+            if (stationRequest.docks == null || stationRequest.docks.isEmpty()) {
+                stationRequest.docks = new ArrayList<>(List.of(
+                    new PortalService.DockRequest("A-01", "CCS2", 60, "AVAILABLE"),
+                    new PortalService.DockRequest("A-02", "CCS2", 60, "AVAILABLE")));
+            }
+            stationId = portal.createStation(stationRequest).id;
+        }
+
+        Account created = new Account();
+        created.id = UUID.randomUUID().toString();
+        created.email = email;
+        created.role = normalizedRole;
+        created.stationId = stationId;
+        // Social accounts intentionally have no local password hash.
+        accounts.put(email, created);
+        accountsById.put(created.id, created);
+        socialIdentityAccounts.put(identityKey, created.id);
+        return created;
     }
 
     public synchronized Account authenticate(String emailInput, String password, String requestedRole) {
@@ -69,7 +121,7 @@ public class AuthService {
         if (session == null) return null;
         Object id = session.getAttribute(SESSION_ACCOUNT_ID);
         if (id == null) return null;
-        return accounts.values().stream().filter(a -> a.id.equals(id)).findFirst().orElse(null);
+        return accountsById.get(id.toString());
     }
 
     public Account requireAccount(HttpSession session) {
@@ -121,6 +173,7 @@ public class AuthService {
         account.stationId = stationId;
         account.passwordHash = hashPassword(password);
         accounts.put(email, account);
+        accountsById.put(account.id, account);
     }
 
     private String normalizeEmail(String input) {
